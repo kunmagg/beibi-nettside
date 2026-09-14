@@ -103,7 +103,9 @@ import { play } from "./vendor/cuelume/audio/engine.js";
     draw(force = false) {
       if (!force && (this.pose.flipped || this.pose.turning)) return;
       if (this.canvas.closest('[hidden]')) return;
-      const box = this.canvas.closest('figure').getBoundingClientRect();
+      // Entrance scaling is visual only; keep the backing canvas resolution stable.
+      const tile = this.canvas.closest('figure');
+      const box = {width:tile.clientWidth,height:tile.clientHeight};
       if (!box.width || !box.height) return;
       const ratio = Math.min(devicePixelRatio || 1, gpu?.gl ? 2 : 1);
       const width = Math.max(1, Math.round(box.width * ratio));
@@ -279,7 +281,10 @@ import { play } from "./vendor/cuelume/audio/engine.js";
     const tile = canvas.closest('figure');
     const canFlip = tile.classList.contains('portrait-flip');
     const surface = canFlip ? tile : canvas;
-    const activate = () => canFlip ? flipPortrait(pose) : holdShape(pose);
+    const activate = () => {
+      if (pose.entering) return;
+      return canFlip ? flipPortrait(pose) : holdShape(pose);
+    };
     if (canFlip) tile.querySelector('.portrait-turn').addEventListener('transitionend', event => {
       if (event.propertyName === 'transform' && event.target === event.currentTarget) finishFlip(pose);
     });
@@ -375,6 +380,7 @@ import { play } from "./vendor/cuelume/audio/engine.js";
     const captured = pointerTargets.find(target => target.canvas.hasPointerCapture(event.pointerId));
     const candidates = [];
     for (const target of pointerTargets) {
+      if (target.pose.entering) continue;
       if (target.canvas.closest('[hidden]') || (state.targetMode === 'nearest' && captured && captured !== target)) continue;
       const box = target.canvas.closest('figure').getBoundingClientRect();
       if (!box.width || !box.height) continue;
@@ -466,9 +472,34 @@ import { play } from "./vendor/cuelume/audio/engine.js";
   }
 
   function showError(error) {
+    document.querySelector('.poster').setAttribute('aria-busy','false');
     console.error('Portraits could not load:',error);
     $('portrait-error').hidden=false;
     $('portrait-error').textContent='Portretta kunne ikkje lastast. Prøv å laste sida på nytt.';
+  }
+
+  async function revealPortraits() {
+    const poster=document.querySelector('.poster');
+    // Left to right on row one, right to left on row two, then Live.
+    const snake=[0,1,2,5,4,3,6];
+    views.forEach(view=>{view.pose.entering=true;view.draw(true);});
+    poster.dataset.loading='false';
+    poster.setAttribute('aria-busy','false');
+    await Promise.all(snake.map(async (index,step)=>{
+      const view=views[index],tile=view.canvas.closest('figure');
+      if (!motion.matches) {
+        const entrance=tile.animate([
+          {opacity:0,transform:'scale(.8)',offset:0},
+          {opacity:1,transform:'scale(1.035)',offset:.62},
+          {opacity:1,transform:'scale(.992)',offset:.82},
+          {opacity:1,transform:'scale(1)',offset:1}
+        ],{duration:540,delay:step*100,easing:'ease-out',fill:'both'});
+        try { await entrance.finished; } catch { /* Canceled entrances still reveal. */ }
+        entrance.cancel();
+      }
+      tile.inert=false;
+      view.pose.entering=false;
+    }));
   }
 
   async function start() {
@@ -476,6 +507,7 @@ import { play } from "./vendor/cuelume/audio/engine.js";
     const images=await Promise.all(canvases.map(async canvas => {
       const image=new Image(); image.src=canvas.dataset.source; await image.decode(); return image;
     }));
+    await document.fonts.ready;
     setupRenderer();
     canvases.forEach((canvas,index)=>{
       const pose=initialPose(); poses.push(pose);
@@ -495,7 +527,9 @@ import { play } from "./vendor/cuelume/audio/engine.js";
       else {previous=0;invalidate();}
     });
     motion.addEventListener('change',()=>{if (motion.matches) state.demo=false;updateStatus();invalidate();});
-    updateStatus();invalidate();
+    updateStatus();
+    await revealPortraits();
+    invalidate();
   }
   start().catch(showError);
 })();

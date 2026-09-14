@@ -6,6 +6,7 @@ body{min-height:100svh;display:flex;align-items:center;overflow:clip}
 .poster{--scene-gap:clamp(.5rem,1.2vw,1rem);min-height:0;width:min(100%,56rem,calc(80svh - 5rem));padding:clamp(1rem,2vw,1.75rem)}
 .boys{gap:var(--scene-gap)}
 .portrait-tile{margin:0;min-width:0;position:relative}
+.poster[data-loading=true] .portrait-tile{opacity:0;visibility:hidden}
 .portrait-flip{perspective:1100px;cursor:pointer;touch-action:none;container-type:inline-size}
 .portrait-turn{position:relative;transform-style:preserve-3d;transition:transform 620ms cubic-bezier(.22,.7,.2,1)}
 .portrait-flip[data-flipped=true] .portrait-turn{transform:rotateY(180deg)}
@@ -31,7 +32,7 @@ canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 .brand-copy{display:block;position:relative;container-type:normal;min-width:0}
 .wordmark-art{display:block;width:100%;height:auto}
 
-.wordmark-art{aspect-ratio:960/1547;overflow:visible}
+.wordmark-art{aspect-ratio:960/1547;overflow:visible;pointer-events:none;user-select:none;-webkit-user-select:none}
 .wordmark-art path{fill:var(--pink)!important}
 .wordmark-art text{font-family:"Snell Local","Snell Roundhand",cursive!important;fill:var(--brown)!important}
 
