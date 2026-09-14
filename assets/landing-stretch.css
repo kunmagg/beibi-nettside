@@ -1,0 +1,60 @@
+/* Center the three portrait rows; overflowing copy does not size the scene. */
+html{overflow-x:clip}
+body{min-height:100svh;display:flex;align-items:center;overflow:clip}
+.poster{min-height:0;padding-block:clamp(1.25rem,4vw,3.5rem)}
+.portrait-tile{margin:0;min-width:0;position:relative}
+.boy,.beibi{aspect-ratio:4/5;height:auto;cursor:crosshair;touch-action:none}
+.composition{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.65rem,1.6vw,1.4rem)}
+.brand-copy{grid-column:span 2}
+.portrait-tile[data-held=true]::after{content:'HELD';position:absolute;right:6px;top:6px;background:var(--paper);color:var(--brown);padding:4px 6px;border-radius:3px;font:9px Arial,sans-serif;letter-spacing:1px;pointer-events:none}
+canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
+.shape-trigger{position:fixed;right:20px;bottom:20px;z-index:5;border:1px solid var(--brown);border-radius:30px;padding:12px 18px;background:var(--paper);color:var(--brown);font:13px Arial,sans-serif;cursor:pointer;box-shadow:0 4px 20px #21110314}
+.shape-trigger span{margin-left:12px;font-size:17px;color:var(--pink)}
+.shape-trigger:disabled{opacity:.5;cursor:wait}
+.shape-settings{position:fixed;inset:auto 20px 76px auto;margin:0;width:min(340px,calc(100vw - 32px));max-height:calc(100dvh - 100px);overflow:auto;overscroll-behavior:contain;padding:24px;border:1px solid #21110338;border-radius:14px;background:var(--paper);color:var(--brown);box-shadow:0 12px 50px #21110326;font:13px Arial,sans-serif}
+.shape-settings::backdrop{background:transparent}
+.shape-settings header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}
+.shape-settings h2{margin:0;font:650 32px Fraunces,Georgia,serif;letter-spacing:-1px}
+.shape-settings button{font:inherit;color:inherit;cursor:pointer}
+.shape-settings header button{border:0;background:none;font-size:26px;line-height:1;padding:4px 8px}
+.shape-intro,.shape-help{font-size:11px;line-height:1.5;color:#211103a6}
+.shape-intro{margin:0 0 25px}.shape-help{margin:-6px 0 14px}
+.shape-range{margin-bottom:24px}
+.shape-range label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;font-size:12px}
+.shape-range output{font:10px monospace;color:#211103a6}
+.shape-range input{display:block;width:100%;height:4px;accent-color:var(--pink);cursor:ew-resize}
+.shape-modes{display:grid;grid-template-columns:1fr 1.4fr;border:1px solid #21110340;border-radius:5px;overflow:hidden}
+.shape-modes button{border:0;background:transparent;font-size:11px;padding:10px 5px}
+.shape-modes button:last-child{grid-column:1/-1;border-top:1px solid #21110340}
+.shape-modes button[aria-pressed=true]{background:var(--brown);color:var(--paper)}
+.shape-check{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0;font-size:12px}
+.shape-check small{display:block;font-size:10px;color:#211103a6;margin-top:6px}
+.shape-check input{width:16px;height:16px;accent-color:var(--pink)}
+.shape-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shape-actions button{border:1px solid #21110340;border-radius:4px;padding:11px 4px;background:transparent;font-size:11px}
+.shape-actions button[aria-pressed=true]{background:var(--brown);color:var(--paper)}
+.shape-reset{display:block;width:100%;background:transparent;border:0;padding:16px 0 0;font-size:11px!important;color:#211103a6!important}
+@media(max-width:480px){.shape-trigger{right:14px;bottom:14px}.shape-settings{right:16px;bottom:70px;padding:20px}.brand-copy{gap:.5rem}.portrait-tile[data-held=true]::after{font-size:7px;padding:3px}}
+@media print{.shape-trigger,.shape-settings,.portrait-tile::after{display:none!important}}
+
+/* Supplied wordmark artwork preserves its justified, vertically elongated
+   lettering and the exact adjective/ampersand/letter overlap order. */
+.brand-copy{display:block;position:relative;container-type:normal;min-width:0}
+.wordmark-art{display:block;width:100%;height:auto}
+
+.wordmark-art{aspect-ratio:960/1547;overflow:visible}
+.wordmark-art path{fill:var(--pink)!important}
+.wordmark-art text{font-family:"Snell Local","Snell Roundhand",cursive!important;fill:var(--brown)!important}
+
+/* Size the layout box around the two title lines; let the adjective stack
+   extend beyond it, behind the portrait row above. */
+.boys{position:relative;z-index:2}
+.composition{position:relative;padding-bottom:0}
+.composition>.portrait-tile{z-index:2}
+.brand-copy{width:92%;justify-self:end;align-self:end;aspect-ratio:960/580;z-index:1}
+/* Position the enlarged wordmark just above Live’s lower edge. */
+.wordmark-art{position:absolute;inset:auto auto 0 0;transform:translateY(38.356%)}
+
+.booking{position:absolute;top:calc(100% + clamp(.65rem,1.6vw,1.4rem));left:0;right:0;z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(14px,1.4vw,18px);font-weight:500;line-height:1.6;overflow-wrap:anywhere}
+.booking a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
+.booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{margin:0 .35em}
