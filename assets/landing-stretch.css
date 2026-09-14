@@ -45,6 +45,6 @@ canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 /* Position the enlarged wordmark just above Live’s lower edge. */
 .wordmark-art{position:absolute;inset:auto auto 0 0;transform:translateY(38.356%)}
 
-.booking{position:absolute;top:calc(100% + var(--scene-gap));left:0;right:0;z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(14px,1.4vw,18px);font-weight:500;line-height:1.6;overflow-wrap:anywhere}
-.booking a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
-.booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{margin:0 .35em}
+.booking{position:absolute;top:calc(100% + var(--scene-gap));left:0;width:calc((100% - var(--scene-gap)) * 2 / 3);z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(12px,1.15vw,15px);font-weight:500;line-height:1.35;overflow-wrap:anywhere}
+.booking a{display:block;width:fit-content;max-width:100%;color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
+.booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{display:none}
