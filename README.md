@@ -8,7 +8,7 @@ From this directory, run `python3 -m http.server 8765`, then open http://localho
 
 ## Deploy
 
-Import this repository into Vercel. Use the Other framework preset, no build command, and the repository root as the output directory. The website requires no backend, environment variables, or package installation.
+Import this repository directly into Vercel. The included `vercel.json` selects the Other framework preset, skips dependency installation and building, and serves the repository root. No `package.json` is needed. The website requires no backend, environment variables, or package installation.
 
 `index.html` is the homepage. Keep the `assets/` directory beside it. Fonts and the wordmark are embedded in the HTML. Cuelume 0.2.2 is included locally with its MIT license in `assets/vendor/cuelume/LICENSE`.
 
