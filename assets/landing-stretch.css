@@ -1,6 +1,6 @@
 /* Center the three portrait rows; overflowing copy does not size the scene. */
 html{overflow-x:clip}
-body{min-height:100svh;display:flex;align-items:center;overflow:clip}
+body{min-height:100svh;display:flex;align-items:center;overflow:clip;padding-bottom:clamp(64px,8svh,80px)}
 /* Three rows of 4:5 tiles need roughly 1.25 × their combined grid width.
    Cap width by viewport height too, leaving room for booking below the heads. */
 .poster{--scene-gap:clamp(.5rem,1.2vw,1rem);min-height:0;width:min(100%,56rem,calc(80svh - 5rem));padding:clamp(1rem,2vw,1.75rem)}
