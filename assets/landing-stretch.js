@@ -488,14 +488,23 @@ import { play } from "./vendor/cuelume/audio/engine.js";
     await Promise.all(snake.map(async (index,step)=>{
       const view=views[index],tile=view.canvas.closest('figure');
       if (!motion.matches) {
+        const fade=tile.animate([{opacity:0},{opacity:1}],
+          {duration:70,delay:step*100,easing:'ease-out',fill:'both'});
         const entrance=tile.animate([
-          {opacity:0,transform:'scale(.8)',offset:0},
-          {opacity:1,transform:'scale(1.035)',offset:.62},
-          {opacity:1,transform:'scale(.992)',offset:.82},
-          {opacity:1,transform:'scale(1)',offset:1}
+          {transform:'scale(.8)',offset:0},
+          {transform:'scale(1.035)',offset:.62},
+          {transform:'scale(.992)',offset:.82},
+          {transform:'scale(1)',offset:1}
         ],{duration:540,delay:step*100,easing:'ease-out',fill:'both'});
-        try { await entrance.finished; } catch { /* Canceled entrances still reveal. */ }
+        try {
+          await entrance.finished;
+          // Play at the landing, never queue blocked audio for a later gesture.
+          if (state.flipSound && !document.hidden) {
+            play(view.canvas.dataset.portrait === 'beibi' ? 'sparkle' : 'toggle',{volume:.35});
+          }
+        } catch { /* Canceled entrances still reveal, without a landing sound. */ }
         entrance.cancel();
+        fade.cancel();
       }
       tile.inert=false;
       view.pose.entering=false;
