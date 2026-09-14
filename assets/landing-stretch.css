@@ -1,7 +1,10 @@
 /* Center the three portrait rows; overflowing copy does not size the scene. */
 html{overflow-x:clip}
 body{min-height:100svh;display:flex;align-items:center;overflow:clip}
-.poster{min-height:0;padding-block:clamp(1.25rem,4vw,3.5rem)}
+/* Three rows of 4:5 tiles need roughly 1.25 × their combined grid width.
+   Cap width by viewport height too, leaving room for booking below the heads. */
+.poster{--scene-gap:clamp(.5rem,1.2vw,1rem);min-height:0;width:min(100%,56rem,calc(80svh - 5rem));padding:clamp(1rem,2vw,1.75rem)}
+.boys{gap:var(--scene-gap)}
 .portrait-tile{margin:0;min-width:0;position:relative}
 .portrait-flip{perspective:1100px;cursor:pointer;touch-action:none;container-type:inline-size}
 .portrait-turn{position:relative;transform-style:preserve-3d;transition:transform 620ms cubic-bezier(.22,.7,.2,1)}
@@ -17,7 +20,7 @@ body{min-height:100svh;display:flex;align-items:center;overflow:clip}
 .portrait-flip:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
 @media(prefers-reduced-motion:reduce){.portrait-turn{transition:none}}
 .boy,.beibi{aspect-ratio:4/5;height:auto;cursor:crosshair;touch-action:none}
-.composition{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.65rem,1.6vw,1.4rem)}
+.composition{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--scene-gap);margin-top:var(--scene-gap)}
 .brand-copy{grid-column:span 2}
 .portrait-tile[data-held=true]::after{content:'HELD';position:absolute;right:6px;top:6px;background:var(--paper);color:var(--brown);padding:4px 6px;border-radius:3px;font:9px Arial,sans-serif;letter-spacing:1px;pointer-events:none}
 canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
@@ -41,6 +44,6 @@ canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 /* Position the enlarged wordmark just above Live’s lower edge. */
 .wordmark-art{position:absolute;inset:auto auto 0 0;transform:translateY(38.356%)}
 
-.booking{position:absolute;top:calc(100% + clamp(.65rem,1.6vw,1.4rem));left:0;right:0;z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(14px,1.4vw,18px);font-weight:500;line-height:1.6;overflow-wrap:anywhere}
+.booking{position:absolute;top:calc(100% + var(--scene-gap));left:0;right:0;z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(14px,1.4vw,18px);font-weight:500;line-height:1.6;overflow-wrap:anywhere}
 .booking a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
 .booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{margin:0 .35em}
