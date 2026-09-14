@@ -1,0 +1,46 @@
+/* Center the three portrait rows; overflowing copy does not size the scene. */
+html{overflow-x:clip}
+body{min-height:100svh;display:flex;align-items:center;overflow:clip}
+.poster{min-height:0;padding-block:clamp(1.25rem,4vw,3.5rem)}
+.portrait-tile{margin:0;min-width:0;position:relative}
+.portrait-flip{perspective:1100px;cursor:pointer;touch-action:none;container-type:inline-size}
+.portrait-turn{position:relative;transform-style:preserve-3d;transition:transform 620ms cubic-bezier(.22,.7,.2,1)}
+.portrait-flip[data-flipped=true] .portrait-turn{transform:rotateY(180deg)}
+.portrait-front,.portrait-back{backface-visibility:hidden;-webkit-backface-visibility:hidden;pointer-events:none}
+.portrait-back{position:absolute;inset:0;transform:rotateY(180deg);isolation:isolate}
+.portrait-snapshot,.portrait-soften{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+.portrait-soften{display:none;filter:blur(9px);mask-image:radial-gradient(ellipse 55% 43% at center,#000 30%,transparent 100%)}
+.portrait-back::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 43% 30% at center,var(--paper) 0%,#f6eedbe8 30%,#f6eedb85 58%,transparent 100%)}
+.portrait-details{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--detail-ink,var(--pink));font-family:"Fraunces",Georgia,serif;font-size:clamp(13px,7cqi,27px);line-height:1.45;text-align:center}
+.portrait-details strong{color:inherit;font-size:clamp(17px,9cqi,34px);font-weight:800;line-height:1.1;margin-bottom:.3em}
+.portrait-flip[data-held=true]::after{display:none}
+.portrait-flip:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.portrait-turn{transition:none}}
+.boy,.beibi{aspect-ratio:4/5;height:auto;cursor:crosshair;touch-action:none}
+.composition{grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.65rem,1.6vw,1.4rem)}
+.brand-copy{grid-column:span 2}
+.portrait-tile[data-held=true]::after{content:'HELD';position:absolute;right:6px;top:6px;background:var(--paper);color:var(--brown);padding:4px 6px;border-radius:3px;font:9px Arial,sans-serif;letter-spacing:1px;pointer-events:none}
+canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--pink);outline-offset:4px}
+@media print{.portrait-tile::after{display:none!important}}
+
+/* Supplied wordmark artwork preserves its justified, vertically elongated
+   lettering and the exact adjective/ampersand/letter overlap order. */
+.brand-copy{display:block;position:relative;container-type:normal;min-width:0}
+.wordmark-art{display:block;width:100%;height:auto}
+
+.wordmark-art{aspect-ratio:960/1547;overflow:visible}
+.wordmark-art path{fill:var(--pink)!important}
+.wordmark-art text{font-family:"Snell Local","Snell Roundhand",cursive!important;fill:var(--brown)!important}
+
+/* Size the layout box around the two title lines; let the adjective stack
+   extend beyond it, behind the portrait row above. */
+.boys{position:relative;z-index:2}
+.composition{position:relative;padding-bottom:0}
+.composition>.portrait-tile{z-index:2}
+.brand-copy{width:92%;justify-self:end;align-self:end;aspect-ratio:960/580;z-index:1}
+/* Position the enlarged wordmark just above Live’s lower edge. */
+.wordmark-art{position:absolute;inset:auto auto 0 0;transform:translateY(38.356%)}
+
+.booking{position:absolute;top:calc(100% + clamp(.65rem,1.6vw,1.4rem));left:0;right:0;z-index:2;margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(14px,1.4vw,18px);font-weight:500;line-height:1.6;overflow-wrap:anywhere}
+.booking a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
+.booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{margin:0 .35em}
