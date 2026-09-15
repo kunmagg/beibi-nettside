@@ -493,11 +493,9 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
         const fade=tile.animate([{opacity:0},{opacity:1}],
           {duration:70,delay:step*100,easing:'ease-out',fill:'both'});
         const entrance=tile.animate([
-          {transform:'scale(.8)',offset:0},
-          {transform:'scale(1.035)',offset:.62},
-          {transform:'scale(.992)',offset:.82},
+          {transform:'scale(1.15)',offset:0},
           {transform:'scale(1)',offset:1}
-        ],{duration:540,delay:step*100,easing:'ease-out',fill:'both'});
+        ],{duration:140,delay:step*100,easing:'linear',fill:'both'});
         try {
           await entrance.finished;
         } catch { /* Canceled entrances still reveal. The intro is silent. */ }
