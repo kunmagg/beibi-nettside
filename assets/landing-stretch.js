@@ -482,12 +482,12 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
 
   async function revealPortraits() {
     const poster=document.querySelector('.poster');
-    // Left to right on row one, right to left on row two, then Live.
-    const snake=[0,1,2,5,4,3,6];
+    // Spiral: Øystein, Lars, Tormod, Henrik, Magnus, Haakon, then Live.
+    const spiral=[4,5,2,1,0,3,6];
     views.forEach(view=>{view.pose.entering=true;view.draw(true);});
     poster.dataset.loading='false';
     poster.setAttribute('aria-busy','false');
-    await Promise.all(snake.map(async (index,step)=>{
+    await Promise.all(spiral.map(async (index,step)=>{
       const view=views[index],tile=view.canvas.closest('figure');
       if (!motion.matches) {
         const fade=tile.animate([{opacity:0},{opacity:1}],

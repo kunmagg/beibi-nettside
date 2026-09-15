@@ -46,7 +46,7 @@ canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 .composition>.portrait-tile{z-index:2}
 .brand-copy{width:92%;justify-self:end;align-self:end;aspect-ratio:960/580;z-index:1}
 /* Position the enlarged wordmark just above Live’s lower edge. */
-.wordmark-art{position:absolute;inset:auto auto 0 0;transform:translateY(38.356%)}
+.wordmark-art{position:absolute;inset:auto auto 0 0;transform:translate(-2%,35.6%)}
 
 .booking{margin:0;text-align:left;color:var(--brown);font-family:"Fraunces",Georgia,serif;font-size:clamp(12px,1.15vw,15px);font-weight:500;line-height:1.35}
 .booking{position:absolute;top:calc(100% + var(--scene-gap));left:0;width:calc((100% - var(--scene-gap)) * 2 / 3);z-index:2;overflow-wrap:anywhere}
