@@ -1,11 +1,13 @@
+import { play } from "./vendor/cuelume/audio/engine.js";
+import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
+
 "use strict";
 // Live portrait stretching, copied from the preserved Pull a Face experiment.
 (() => {
   const $ = id => document.getElementById(id);
   const clamp = (n,min=0,max=1) => Math.max(min,Math.min(max,n));
   const css = getComputedStyle(document.documentElement);
-  const background = css.getPropertyValue('--paper').trim();
-  const defaults = {strength:.8,curve:.75,response:120,reach:75,falloff:180,targetMode:'all',exitEasing:true};
+  const defaults = {strength:.8,curve:.75,response:120,reach:75,falloff:180,targetMode:'all',exitEasing:true,halftone:false,flipSound:true};
   const restingPose = () => ({x:.5,y:.5,tx:.5,ty:.5,amount:0,targetAmount:0,lastX:.5,lastY:.5,settle:null,held:false});
   // Seed both displayed and target poses before the first frame, so loading
   // never flashes the unstretched base image or eases in from the center.
@@ -69,6 +71,7 @@
       this.canvas = canvas;
       this.textureSource = texture;
       this.context = canvas.getContext('2d');
+      this.halo = createPortraitHalo(canvas.closest('figure'));
       this.observer = new ResizeObserver(invalidate);
       this.observer.observe(this.canvas);
       bindPointer(this.canvas, pose);
@@ -76,6 +79,7 @@
 
     setupGL() {
       const gl = this.gl;
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
       const program = gl.createProgram();
       const vertex = compile(gl, gl.VERTEX_SHADER, vertexSource);
       const fragment = compile(gl, gl.FRAGMENT_SHADER, fragmentSource);
@@ -98,9 +102,12 @@
       invalidate();
     }
 
-    draw() {
+    draw(force = false) {
+      if (!force && (this.pose.flipped || this.pose.turning)) return;
       if (this.canvas.closest('[hidden]')) return;
-      const box = this.canvas.getBoundingClientRect();
+      // Entrance scaling is visual only; keep the backing canvas resolution stable.
+      const tile = this.canvas.closest('figure');
+      const box = {width:tile.clientWidth,height:tile.clientHeight};
       if (!box.width || !box.height) return;
       const ratio = Math.min(devicePixelRatio || 1, gpu?.gl ? 2 : 1);
       const width = Math.max(1, Math.round(box.width * ratio));
@@ -110,6 +117,8 @@
       }
       const pose = this.pose;
       const amount = pose.amount * state.strength;
+      // Transparent pixels must replace the previous pose, not accumulate.
+      this.context.clearRect(0, 0, width, height);
       if (gpu?.gl && !gpu.lost) {
         const gl = gpu.gl, u = gpu.uniforms;
         if (gl.canvas.width !== width || gl.canvas.height !== height) {
@@ -137,16 +146,19 @@
         // with exactly the same power curve, preserving a live non-GPU fallback.
         const context = this.context, texture = this.textureSource;
         if (amount < .0001) { context.drawImage(texture, 0, 0, width, height); return; }
-        const columns = 96, rows = 96;
+        const columns = Math.min(96,width), rows = Math.min(96,height);
+        // Integer destination cells meet without gaps or alpha overlap.
+        const dx = Array.from({length:columns+1},(_,i)=>Math.round(i*width/columns));
+        const dy = Array.from({length:rows+1},(_,i)=>Math.round(i*height/rows));
         const xs = Array.from({length: columns + 1}, (_, i) => {
-          const u = i / columns; return (u + (mapAxis(u, pose.x, state.curve) - u) * amount) * texture.width;
+          const u = dx[i] / width; return (u + (mapAxis(u, pose.x, state.curve) - u) * amount) * texture.width;
         });
         const ys = Array.from({length: rows + 1}, (_, i) => {
-          const v = i / rows; return (v + (mapAxis(v, pose.y, state.curve) - v) * amount) * texture.height;
+          const v = dy[i] / height; return (v + (mapAxis(v, pose.y, state.curve) - v) * amount) * texture.height;
         });
         for (let y = 0; y < rows; y++) for (let x = 0; x < columns; x++) {
           context.drawImage(texture, xs[x], ys[y], xs[x+1]-xs[x], ys[y+1]-ys[y],
-            x * width / columns, y * height / rows, width / columns + .4, height / rows + .4);
+            dx[x], dy[y], dx[x+1]-dx[x], dy[y+1]-dy[y]);
         }
       }
     }
@@ -156,7 +168,7 @@
     // All portraits share one GPU context and a few source textures, so larger
     // grids do not exceed the browser's per-page WebGL context limit.
     const canvas = makeCanvas(1,1);
-    gpu = { gl:canvas.getContext('webgl',{alpha:false,antialias:false,preserveDrawingBuffer:true}), lost:false };
+    gpu = { gl:canvas.getContext('webgl',{alpha:true,premultipliedAlpha:true,antialias:false,preserveDrawingBuffer:true}), lost:false };
     if (!gpu.gl) return;
     try { StretchView.prototype.setupGL.call(gpu); }
     catch (error) { console.warn('Using software rendering:',error); gpu.gl = null; }
@@ -221,6 +233,7 @@
   }
 
   function holdShape(pose = activePose) {
+    if (pose.flipped || pose.turning) { flipPortrait(pose); return; }
     activePointerTargets.forEach(target => {
       if (target.pose !== pose) return;
       target.keepShape(); activePointerTargets.delete(target);
@@ -234,7 +247,51 @@
     updateStatus(); invalidate();
   }
 
+  function flipPortrait(pose) {
+    clearTimeout(pose.flipTimer);
+    const view = views.find(view => view.pose === pose);
+    const tile = view.canvas.closest('figure');
+    activePointerTargets.forEach(target => {
+      if (target.pose === pose) { target.keepShape(); activePointerTargets.delete(target); }
+    });
+    pose.settle = null;
+    pose.tx = pose.lastX = pose.x;
+    pose.ty = pose.lastY = pose.y;
+    pose.targetAmount = pose.amount;
+    if (!pose.flipped && !pose.turning) {
+      // Copy the visible frame before rotating; its shape and color stay frozen.
+      view.halo.capture(view.canvas);
+    }
+    if (state.flipSound) play(view.canvas.dataset.portrait === "beibi" ? "sparkle" : "toggle", {volume:.35});
+    pose.flipped = !pose.flipped;
+    pose.held = true;
+    pose.turning = true;
+    activePose = pose;
+    tile.dataset.flipped = String(pose.flipped);
+    updateStatus();
+    // Changing the target reverses the CSS transition from its current angle.
+    // Keep a fallback for reduced motion or reversals before the first paint.
+    pose.flipTimer = setTimeout(() => finishFlip(pose),motion.matches ? 0 : 640);
+  }
+
+  function finishFlip(pose) {
+    clearTimeout(pose.flipTimer);
+    pose.turning = false;
+    pose.held = !!pose.flipped;
+    updateStatus(); invalidate();
+  }
+
   function bindPointer(canvas, pose = activePose) {
+    const tile = canvas.closest('figure');
+    const canFlip = tile.classList.contains('portrait-flip');
+    const surface = canFlip ? tile : canvas;
+    const activate = () => {
+      if (pose.entering) return;
+      return canFlip ? flipPortrait(pose) : holdShape(pose);
+    };
+    if (canFlip) tile.querySelector('.portrait-turn').addEventListener('transitionend', event => {
+      if (event.propertyName === 'transform' && event.target === event.currentTarget) finishFlip(pose);
+    });
     let down = null;
     let engaged = false;
     const move = (event, influence = 1) => {
@@ -242,7 +299,7 @@
       pose.settle = null;
       engaged = true;
       if (state.demo) { state.demo = false; updateStatus(); }
-      const box = canvas.getBoundingClientRect();
+      const box = tile.getBoundingClientRect();
       // Finite reach spreads coordinates across its expanded area. Infinite
       // reach uses the image's edges for direction and distance for strength.
       const padding = state.targetMode === 'infinite' ? 0 : state.reach;
@@ -268,30 +325,40 @@
       schedule();
     };
     pointerTargets.push({ canvas, pose, move, keepShape });
-    canvas.addEventListener('focus',() => selectPose(pose));
-    canvas.addEventListener('pointerdown', event => {
+    surface.addEventListener('focus',() => selectPose(pose));
+    surface.addEventListener('pointerdown', event => {
       if (event.button !== 0) return;
       down = { x: event.clientX, y: event.clientY, id: event.pointerId };
       canvas.setPointerCapture(event.pointerId); routePointer(event);
     });
-    canvas.addEventListener('pointerup', event => {
+    surface.addEventListener('pointerup', event => {
       if (!down || event.pointerId !== down.id) return;
       const moved = Math.hypot(event.clientX-down.x, event.clientY-down.y);
       down = null;
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-      if (moved < 6) holdShape(pose);
+      if (moved < 6) activate();
       else if (event.pointerType !== 'mouse') {
         stopPointer(true);
       } else {
         routePointer(event);
       }
     });
-    canvas.addEventListener('pointercancel', () => { down = null; keepShape(); });
-    canvas.addEventListener('lostpointercapture', () => { if (down) { down = null; keepShape(); } });
-    canvas.addEventListener('keydown', event => {
+    // Assistive activation has no pointer sequence; ordinary clicks use pointerup.
+    if (canFlip) surface.addEventListener('click', event => {
+      if (!event.detail) activate();
+    });
+    surface.addEventListener('pointercancel', () => { down = null; keepShape(); });
+    surface.addEventListener('lostpointercapture', () => { if (down) { down = null; keepShape(); } });
+    surface.addEventListener('keydown', event => {
       const deltas = {ArrowLeft:[-.05,0],ArrowRight:[.05,0],ArrowUp:[0,-.05],ArrowDown:[0,.05]};
-      if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); holdShape(pose); }
-      if (event.key === 'Escape') { event.preventDefault(); reset(); }
+      if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); if (!event.repeat) activate(); }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (event.repeat) return;
+        if (pose.flipped) flipPortrait(pose);
+        else if (pose.held && !pose.turning) holdShape(pose);
+        return;
+      }
       if (!deltas[event.key]) return;
       event.preventDefault(); selectPose(pose);
       if (pose.held) return;
@@ -309,26 +376,17 @@
     activePointerTargets.clear();
   }
 
-  function cancelSettling() {
-    poses.forEach(pose => {
-      if (!pose.settle) return;
-      pose.settle = null;
-      pose.tx = pose.lastX = pose.x;
-      pose.ty = pose.lastY = pose.y;
-      pose.targetAmount = pose.amount;
-    });
-  }
-
   function routePointer(event) {
     // Controls should never reshape an image while the user adjusts a slider.
-    if (event.target?.closest?.('.shape-settings, button, input, select, a')) {
+    if (event.target?.closest?.('button, input, select, a')) {
       stopPointer(true); return;
     }
     const captured = pointerTargets.find(target => target.canvas.hasPointerCapture(event.pointerId));
     const candidates = [];
     for (const target of pointerTargets) {
+      if (target.pose.entering) continue;
       if (target.canvas.closest('[hidden]') || (state.targetMode === 'nearest' && captured && captured !== target)) continue;
-      const box = target.canvas.getBoundingClientRect();
+      const box = target.canvas.closest('figure').getBoundingClientRect();
       if (!box.width || !box.height) continue;
       const dx = Math.max(box.left-event.clientX, 0, event.clientX-box.right);
       const dy = Math.max(box.top-event.clientY, 0, event.clientY-box.bottom);
@@ -360,42 +418,21 @@
 
 
   function updateStatus() {
-    const selected = views.find(view => view.pose === activePose);
-    const name = selected?.canvas.dataset.name || 'portrait';
-    $('hold').textContent = `${activePose?.held ? 'Release' : 'Hold'} ${name}`;
-    $('hold').setAttribute('aria-pressed',String(!!activePose?.held));
-    $('demo').setAttribute('aria-pressed',String(state.demo));
-    $('demo').textContent = state.demo ? 'Stop animation' : 'Animate';
     for (const view of views) {
       view.canvas.closest('figure').dataset.held = String(view.pose.held);
-      view.canvas.setAttribute('aria-label',`${view.canvas.dataset.name}. ${view.pose.held ? 'Held; click to release.' : 'Move to stretch; click to hold.'} Arrow keys stretch, Space holds, Escape resets.`);
+      const tile = view.canvas.closest('.portrait-flip');
+      if (tile) {
+        tile.setAttribute('aria-pressed',String(!!view.pose.flipped));
+        tile.setAttribute('aria-label',view.pose.flipped
+          ? `${[...tile.querySelectorAll('.portrait-details strong,.portrait-details span')].map(line => line.textContent.trim()).filter(Boolean).join('. ')}. Click or press Enter to turn back and stretch.`
+          : `${view.canvas.dataset.name}. Move to stretch. Click or press Enter to reveal instruments.`);
+        continue;
+      }
+      view.canvas.setAttribute('aria-label',`${view.canvas.dataset.name}. ${view.pose.held ? 'Held; click to release.' : 'Move to stretch; click to hold.'} Arrow keys stretch, Space holds, Escape releases.`);
     }
   }
 
-  function syncControls() {
-    const infinite = state.targetMode === 'infinite';
-    for (const key of ['strength','curve','response','reach']) {
-      const value = key === 'reach' && infinite ? state.falloff : state[key];
-      if (key === 'reach') { $(key).min=infinite ? 25 : 0; $(key).max=infinite ? 1000 : 250; }
-      $(key).value = key === 'strength' ? value*100 : value;
-      $(key+'-value').textContent = key === 'strength' ? Math.round(value*100)+'%' : key === 'curve' ? value.toFixed(2) : value+(key === 'reach' ? ' px' : ' ms');
-    }
-    $('reach-label').textContent = infinite ? 'Falloff distance' : 'Reach outside portrait';
-    $('reach-help').textContent = infinite ? 'Half strength at this distance beyond each edge.' : 'Distance beyond each edge where portraits respond.';
-    $('exit-easing').checked = state.exitEasing;
-    $('exit-easing').disabled = infinite;
-    $('exit-easing-help').textContent = infinite ? 'Available in finite reach modes' : 'A quick deceleration, then hold the shape';
-    document.querySelectorAll('[data-target-mode]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.targetMode === state.targetMode)));
-  }
-
-  function reset() {
-    stopPointer();
-    poses.forEach(pose => Object.assign(pose,restingPose()));
-    Object.assign(state,defaults,{demo:false});
-    syncControls(); updateStatus(); invalidate();
-  }
-
-  function preparePortrait(image,ink) {
+  function preparePortrait(image,ink,halftone = false) {
     // The same treatment applies to every cutout: fill 4:5, monochrome,
     // contrast 125%, then duotone using its brand ink before live warping.
     const texture=makeCanvas(640,800), ctx=texture.getContext('2d');
@@ -410,15 +447,66 @@
       for (let c=0;c<3;c++) data[i+c]=shadow[c]+tone*(highlight[c]-shadow[c]);
     }
     ctx.putImageData(pixels,0,0);
-    ctx.globalCompositeOperation='destination-over';
-    ctx.fillStyle=background; ctx.fillRect(0,0,640,800);
+    if (halftone) {
+      const mask = makeCanvas(640,800);
+      mask.getContext('2d').putImageData(pixels,0,0);
+      ctx.fillStyle = 'rgb(255,249,235)';
+      ctx.fillRect(0,0,640,800);
+      ctx.fillStyle = ink;
+      // Average each cell before converting its tone to ink coverage. The
+      // cached dots stretch with the photograph and retain its cutout alpha.
+      const cell = 6;
+      for (let y=0;y<800;y+=cell) for (let x=0;x<640;x+=cell) {
+        let tone = 0, weight = 0;
+        for (let sy=y;sy<Math.min(y+cell,800);sy++) for (let sx=x;sx<Math.min(x+cell,640);sx++) {
+          const i=(sy*640+sx)*4, alpha=data[i+3]/255;
+          tone += clamp((data[i]-shadow[0])/(highlight[0]-shadow[0]))*alpha;
+          weight += alpha;
+        }
+        if (!weight) continue;
+        const radius = Math.sqrt(1-tone/weight)*cell*.71;
+        ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,radius,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalCompositeOperation='destination-in';
+      ctx.drawImage(mask,0,0);
+    }
     return texture;
   }
 
   function showError(error) {
+    document.querySelector('.poster').setAttribute('aria-busy','false');
     console.error('Portraits could not load:',error);
     $('portrait-error').hidden=false;
     $('portrait-error').textContent='Portretta kunne ikkje lastast. Prøv å laste sida på nytt.';
+  }
+
+  async function revealPortraits() {
+    const poster=document.querySelector('.poster');
+    // Left to right on row one, right to left on row two, then Live.
+    const snake=[0,1,2,5,4,3,6];
+    views.forEach(view=>{view.pose.entering=true;view.draw(true);});
+    poster.dataset.loading='false';
+    poster.setAttribute('aria-busy','false');
+    await Promise.all(snake.map(async (index,step)=>{
+      const view=views[index],tile=view.canvas.closest('figure');
+      if (!motion.matches) {
+        const fade=tile.animate([{opacity:0},{opacity:1}],
+          {duration:70,delay:step*100,easing:'ease-out',fill:'both'});
+        const entrance=tile.animate([
+          {transform:'scale(.8)',offset:0},
+          {transform:'scale(1.035)',offset:.62},
+          {transform:'scale(.992)',offset:.82},
+          {transform:'scale(1)',offset:1}
+        ],{duration:540,delay:step*100,easing:'ease-out',fill:'both'});
+        try {
+          await entrance.finished;
+        } catch { /* Canceled entrances still reveal. The intro is silent. */ }
+        entrance.cancel();
+        fade.cancel();
+      }
+      tile.inert=false;
+      view.pose.entering=false;
+    }));
   }
 
   async function start() {
@@ -426,38 +514,17 @@
     const images=await Promise.all(canvases.map(async canvas => {
       const image=new Image(); image.src=canvas.dataset.source; await image.decode(); return image;
     }));
+    await document.fonts.ready;
     setupRenderer();
     canvases.forEach((canvas,index)=>{
       const pose=initialPose(); poses.push(pose);
       const ink=css.getPropertyValue(canvas.dataset.portrait === 'beibi' ? '--pink' : '--brown').trim();
-      views.push(new StretchView(canvas,preparePortrait(images[index],ink),pose));
+      const smoothTexture=preparePortrait(images[index],ink,state.halftone);
+      const view=new StretchView(canvas,smoothTexture,pose);
+      Object.assign(view,{smoothTexture,sourceImage:images[index],ink});
+      views.push(view);
     });
     activePose=poses[0]; ready=true;
-    for (const key of ['strength','curve','response','reach']) $(key).addEventListener('input',event=>{
-      stopPointer();
-      const setting=key === 'reach' && state.targetMode === 'infinite' ? 'falloff' : key;
-      state[setting]=Number(event.target.value)/(key === 'strength' ? 100 : 1);
-      syncControls(); invalidate();
-    });
-    document.querySelectorAll('[data-target-mode]').forEach(button=>button.addEventListener('click',()=>{
-      stopPointer(); cancelSettling(); state.targetMode=button.dataset.targetMode; syncControls();
-    }));
-    $('exit-easing').addEventListener('change',event=>{
-      state.exitEasing=event.target.checked;
-      if (!state.exitEasing) cancelSettling(); syncControls();
-    });
-    $('hold').addEventListener('click',()=>holdShape());
-    $('reset').addEventListener('click',reset);
-    $('demo').addEventListener('click',()=>{
-      stopPointer(); cancelSettling(); state.demo=!state.demo;
-      if (!state.demo) poses.forEach(pose=>{if (!pose.held) {pose.tx=.5;pose.ty=.5;pose.targetAmount=0;}});
-      updateStatus(); invalidate();
-    });
-    const panel=$('shape-settings'), trigger=$('shape-trigger');
-    panel.addEventListener('toggle',event=>{
-      trigger.setAttribute('aria-expanded',String(event.newState === 'open'));
-      if (event.newState === 'open') stopPointer();
-    });
     document.addEventListener('pointermove',routePointer);
     document.addEventListener('pointercancel',()=>stopPointer(true));
     document.documentElement.addEventListener('pointerleave',()=>stopPointer(true));
@@ -467,8 +534,9 @@
       else {previous=0;invalidate();}
     });
     motion.addEventListener('change',()=>{if (motion.matches) state.demo=false;updateStatus();invalidate();});
-    trigger.disabled=false;
-    syncControls();updateStatus();invalidate();
+    updateStatus();
+    await revealPortraits();
+    invalidate();
   }
   start().catch(showError);
 })();
