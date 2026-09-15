@@ -1,3 +1,24 @@
 .DS_Store
 *~lock~
 dist/
+
+# Local source artwork and experiments (not deployed)
+/assets/IMG_0155.HEIC
+/assets/IMG_0231.HEIC
+/assets/IMG_2763.JPG
+/assets/IMG_3157.JPG
+/assets/IMG_3513.JPG
+/assets/beibi-strectched-text.svg
+/assets/beibi-stretched.svg
+/assets/beibi-svg-2.svg
+/assets/beibi-svg-3.svg
+/assets/beibi-svg.svg
+/assets/beibi-text-2-3.svg
+/assets/beibi-words.png
+/assets/hauan.jpg
+/assets/landing-stretch.README.md
+/assets/lars-180.jpg
+/assets/lars-180.webp
+/beibi.af
+/package-site.py
+/stretch/
