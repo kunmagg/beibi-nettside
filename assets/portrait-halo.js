@@ -122,6 +122,7 @@ export function createPortraitHalo(tile) {
   [tile, details, ...lines].forEach(element => observer.observe(element));
 
   return {
+    refresh: render,
     capture(source) {
       snapshot.width = source.width;
       snapshot.height = source.height;

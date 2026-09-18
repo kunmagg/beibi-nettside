@@ -52,3 +52,21 @@ canvas:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid 
 .booking{position:absolute;top:calc(100% + var(--scene-gap));left:0;width:calc((100% - var(--scene-gap)) * 2 / 3);z-index:2;overflow-wrap:anywhere}
 .booking a{display:block;width:fit-content;max-width:100%;color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}.booking a:hover{color:var(--pink)}
 .booking a:focus-visible{outline:2px solid var(--pink);outline-offset:4px}.booking>span{display:none}
+
+/* Only the ball intercepts clicks; the cable and surrounding space pass through. */
+.disco-rig{position:fixed;z-index:5;pointer-events:none;transform:translateY(calc(-100vh - 220px));transition:transform 900ms cubic-bezier(.45,0,.7,1),translate 160ms ease-out}
+.disco-rig.is-lowered{transform:translateY(0);transition-duration:500ms;transition-timing-function:linear}
+.disco-rig::before{content:'';position:absolute;left:calc(50% - .5px);bottom:92%;width:1px;height:150vh;background:linear-gradient(90deg,#80736a,#c3b6a7);opacity:.85}
+.disco-rig::after{content:'';position:absolute;left:46%;top:5%;width:8%;height:5%;border-radius:2px 2px 0 0;background:#80736a}
+.disco-rig canvas{display:block;width:100%;height:100%}
+.disco-dismiss{position:absolute;inset:8%;border:0;padding:0;border-radius:50%;background:transparent;cursor:pointer;pointer-events:none;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.disco-rig.is-lowered .disco-dismiss{pointer-events:auto}
+.disco-rig.is-dragging,.disco-rig.is-flying{transition:none}
+.disco-lighting{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden;opacity:0;visibility:hidden;background:radial-gradient(ellipse at 50% 35%,rgba(19,12,30,.4),rgba(10,6,18,.76));transition:opacity 450ms ease,visibility 0s 450ms}
+.disco-lighting.is-on{opacity:1;visibility:visible;transition-delay:0s}
+.disco-reflection{position:absolute;width:var(--spot-size);height:var(--spot-size);border-radius:35%;background:radial-gradient(ellipse,rgba(var(--light),.95) 0%,rgba(var(--light),.65) 16%,rgba(var(--light),.18) 38%,rgba(var(--light),0) 70%);mix-blend-mode:screen;opacity:.6;animation:disco-reflection-drift var(--duration) ease-in-out var(--phase) infinite alternate paused}
+.disco-lighting[data-moving=true] .disco-reflection{animation-play-state:running}
+@keyframes disco-reflection-drift{0%{transform:translate3d(calc(var(--travel-x) * -.5),calc(var(--travel-y) * -.5),0) rotate(-25deg) scaleX(var(--stretch));opacity:.25}50%{opacity:.85}100%{transform:translate3d(var(--travel-x),var(--travel-y),0) rotate(25deg) scaleX(var(--stretch));opacity:.4}}
+@media(prefers-reduced-motion:reduce){.disco-rig,.disco-rig.is-lowered{transition:none}}
+@media(prefers-reduced-motion:reduce){.disco-reflection{animation:none}.disco-lighting{transition:none}}
+@media print{.disco-rig,.disco-lighting{display:none}}

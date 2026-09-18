@@ -1,5 +1,7 @@
 import { play } from "./vendor/cuelume/audio/engine.js";
-import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
+import { createPortraitHalo } from "./portrait-halo.js?v=language-refresh-1";
+import { createWordmarkLanguage } from "./wordmark-language.js";
+import { createDiscoBall } from "./disco-ball.js?v=scene-dim-1";
 
 "use strict";
 // Live portrait stretching, copied from the preserved Pull a Face experiment.
@@ -21,6 +23,7 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
   let activePointerTargets = new Set();
   let frame=0,previous=0,dirty=true,ready=false;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
+  let updateLanguage, onDiscoPortraitFlip;
   const makeCanvas = (width,height) => Object.assign(document.createElement('canvas'),{width,height});
   function mapAxis(value, pointer, power) {
     const divide = .25 + .5 * clamp(pointer);
@@ -268,6 +271,7 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
     pose.turning = true;
     activePose = pose;
     tile.dataset.flipped = String(pose.flipped);
+    onDiscoPortraitFlip?.(view);
     updateStatus();
     // Changing the target reverses the CSS transition from its current angle.
     // Keep a fallback for reduced motion or reversals before the first paint.
@@ -418,6 +422,7 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
 
 
   function updateStatus() {
+    updateLanguage?.(views);
     for (const view of views) {
       view.canvas.closest('figure').dataset.held = String(view.pose.held);
       const tile = view.canvas.closest('.portrait-flip');
@@ -513,6 +518,8 @@ import { createPortraitHalo } from "./portrait-halo.js?v=soft-alpha-1";
       const image=new Image(); image.src=canvas.dataset.source; await image.decode(); return image;
     }));
     await document.fonts.ready;
+    updateLanguage = createWordmarkLanguage(motion);
+    onDiscoPortraitFlip = createDiscoBall(motion);
     setupRenderer();
     canvases.forEach((canvas,index)=>{
       const pose=initialPose(); poses.push(pose);
