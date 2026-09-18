@@ -1,6 +1,6 @@
 import { play } from "./vendor/cuelume/audio/engine.js";
 import { createPortraitHalo } from "./portrait-halo.js?v=language-refresh-1";
-import { createWordmarkLanguage } from "./wordmark-language.js";
+import { createWordmarkLanguage } from "./wordmark-language.js?v=shared-letters-1";
 import { createDiscoBall } from "./disco-ball.js?v=scene-dim-1";
 
 "use strict";
